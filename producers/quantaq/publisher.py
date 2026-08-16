@@ -77,7 +77,7 @@ def normalize(record: dict) -> dict:
         "pm25": record.get("pm25"),
         "pm10": record.get("pm10"),
         "temperature_c": record.get("temp", 0.0),
-        "humidity_pct": met.get("rh"),
+        "humidity_pct": met.get("rh", 0.0),
         "pressure_pa": 0.0,               # Sensor not supported on MODULAIR/MODULAIR-PM models being used
         "latitude": geo.get("lat"),
         "longitude": geo.get("lon")
@@ -114,8 +114,10 @@ def main(args) -> int:
             publish(readings)
         except requests.HTTPError as e:
             log.error("QuantAQ API error: %s", e)
+            return 1
         except requests.RequestException as e:
             log.error("QuantAQ API request failed: %s", e)
+            return 1
 
         log.error(f"QuantAQ Publisher waiting for {args.timer} seconds")
         time.sleep(args.timer)
@@ -128,4 +130,4 @@ if __name__ == "__main__":
         help="number of seconds between each query of the QuantAQ API and subsequent publishing cycle (default: 1 hour)"
     )
     args = parser.parse_args()    
-    sys.exit(main(args))
+    sys.exit(main(args)) # Will only ever exit cleanly with an error status of `1`
