@@ -27,13 +27,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 log = logging.getLogger("quantaq_publisher")
 
 QUANTAQ_API_BASE = os.environ.get("QUANTAQ_API_BASE", "https://api.quant-aq.com/v1")
-QUANTAQ_API_KEY = os.environ["QUANTAQ_API_KEY"]              # required
-QUANTAQ_NETWORK_ID = os.environ.get("QUANTAQ_NETWORK_ID")    # required
-QUANTAQ_ORG_ID = os.environ.get("QUANTAQ_ORG_ID")            # required
+QUANTAQ_API_KEY = os.environ["QUANTAQ_API_KEY"]                          # required
+QUANTAQ_NETWORK_ID = os.environ.get("QUANTAQ_NETWORK_ID")                # required
+QUANTAQ_ORG_ID = os.environ.get("QUANTAQ_ORG_ID")                        # required
 
 MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
-MQTT_TOPIC = os.environ.get("MQTT_TOPIC", "")                # required
+MQTT_TOPIC = os.environ.get("QUANTAQ_PUB_TOPIC", "v1/quantaq/reading")  # required
 
 REQUEST_TIMEOUT_S = 15
 
@@ -119,7 +119,7 @@ def main(args) -> int:
             log.error("QuantAQ API request failed: %s", e)
             return 1
 
-        log.error(f"QuantAQ Publisher waiting for {args.timer} seconds")
+        log.info(f"QuantAQ Publisher waiting for {args.timer} seconds")
         time.sleep(args.timer)
 
 

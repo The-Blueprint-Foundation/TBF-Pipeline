@@ -8,7 +8,7 @@ load_dotenv()
 
 MQTT_HOST = os.environ.get("MQTT_HOST", "localhost")
 MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
-MQTT_TOPIC = os.environ.get("MQTT_TOPICS_CSV", "")
+MQTT_TOPIC = os.environ.get("INGEST_SUB_TOPIC", "v1/+/reading")
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def connect_mqtt(host, port: int):
