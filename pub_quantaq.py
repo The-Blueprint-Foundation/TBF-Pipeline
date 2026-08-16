@@ -70,7 +70,7 @@ def normalize(record: dict) -> dict:
     met = record.get("met") or {}
     return {
         "source": "quantaq",
-        "name": f"QuantAQ SN#{record["sn"]}",
+        "name": f"QuantAQ SN#{record['sn']}",
         "device_id": record["sn"],
         "timestamp": record["timestamp"],  # UTC ISO-8601, as returned by the API
         "pm1": record.get("pm1"),
