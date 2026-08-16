@@ -3,7 +3,7 @@
 This repository contains code for all of the MQTT publishers and subscribers that are used to make up the data pipeline for the project.
 
 ## Components
-### Subscriber: Ingester
+### Subscriber: DB Ingester
 This subscriber watches any topics matching the pattern `v1/+/readings`. The `+` acts as a _single_ field wildcard (as opposed to `*` that would match multiple "levels" of a topic string). This pattern is intended to normalize the topics that will be ingested from, while still allowing each publisher to have it's own topic.
 
 Each message that is received then has it's data sent to a stored procedure in the Postgres database (see the `database` directory of the [Infrastructure repository](https://github.com/The-Blueprint-Foundation/TBF-Infrastructure) for the schema being used).
@@ -14,6 +14,8 @@ It's designed to be a long-running script that executes an API request every hou
 This publisher sources it's data from the [QuantAQ Cloud API](https://docs.quant-aq.com/). In order to use this API, an API Key for _The Blueprint Foundation_ will need to be acquired. From there, use the `/v1/devices` endpoint to get information on all devices associated with that key. Notice that **not all of the devices are attributed to _The Blueprint Foundation_**, so identifying the `organization_id` and `network_id` of the correct subset will be required. The script itself relies on the `/v1/data/most_recent` endpoint.
 
 > **Note:** At the time of this writing, there are 6 devices associated with _The Blueprint Foundation_: 5 are MODULAIR models and 1 is MODULAIR-PM. This is noteworthy because, based on notes that can be seen in the `description` fields of the other (seemingly inactive) devices, the devices can be periodically swapped out with different models, which _might_ change what functionality is available and which fields are returned from the endpoint.
+
+---
 
 ## BottleBot Support
 All the necessary information pertaining to these devices can be found on their [main website](https://www.sensorbot.org/) and [GitHub repository](https://github.com/eykamp/birdhouse).
@@ -48,4 +50,4 @@ Received `{"uptime":66273,"freeHeap":28000}` from `v1/devices/me/telemetry` topi
 ```
 This output is from a simple subscriber script that would merely print that information whenever it receives a message. Notice how the `uptime/freeHeap` message seems to demarcate communications.
 
-Once the new message has been created, the _publisher_ portion will then publish that message to the topic `v1/bottlebot/readings`, so that it follows the pattern expected by the [Ingester](#subscriber-ingester).
+Once the new message has been created, the _publisher_ portion will then publish that message to the topic `v1/bottlebot/readings`, so that it follows the pattern expected by the [Ingester](#subscriber-db-ingester).
