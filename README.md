@@ -37,4 +37,15 @@ Arguably, it would seem the best option would be to use the [ThingsBoard MQTT Br
 > It really seems like use of the TBMQ broker _should_ be all that is needed. More research would need to be performed to determine if it causes any problems with the QuantAQ solution in this repository. Had it been known as an option earlier, that's what would've been used and designed around.
 
 ### Workaround
-The plan is to create a script that is a combination of subscriber and publisher. The _subscriber_ part will listen to the `v1/devices/me/telemetry` topic and, once it's received the two messages that consist of a full set of readings (see below for an example of the output) it will merge the message information into one and add in the hardcoded data that was mentioned above. Once the new message has been created, the _publisher_ portion will then publish that message to the topic `v1/bottlebot/readings`, so that it follows the pattern expected by the [Ingester](#subscriber-ingester).
+The plan is to create a script that is a combination of subscriber and publisher. The _subscriber_ part will listen to the `v1/devices/me/telemetry` topic and, once it's received the two messages that consist of a full set of readings (see below for an example of the output) it will merge and consolidate the message information into one and add in the hardcoded data that was mentioned previously.
+```
+Received `{"resetReason":"External System"}` from `v1/devices/me/telemetry` topic
+Received `{"uptime":35097,"freeHeap":28280}` from `v1/devices/me/telemetry` topic
+Received `{"plantowerPM1conc":5.04,"plantowerPM25conc":8.42,"plantowerPM10conc":18.37,"plantowerPM1concRaw":5.04,"plantowerPM25concRaw":8.42,"plantowerPM10concRaw":18.37,"plantowerSampleCount":24}` from `v1/devices/me/telemetry` topic
+Received `{"temperature":26.58,"pressure":1012.50,"temperature_smoothed":25.14,"humidity":48.51}` from `v1/devices/me/telemetry` topic
+Received `{"uptime":66273,"freeHeap":28000}` from `v1/devices/me/telemetry` topic
+...
+```
+This output is from a simple subscriber script that would merely print that information whenever it receives a message. Notice how the `uptime/freeHeap` message seems to demarcate communications.
+
+Once the new message has been created, the _publisher_ portion will then publish that message to the topic `v1/bottlebot/readings`, so that it follows the pattern expected by the [Ingester](#subscriber-ingester).
