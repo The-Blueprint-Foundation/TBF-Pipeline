@@ -1,4 +1,5 @@
 import os
+import logging
 from dotenv import load_dotenv
 from paho.mqtt import client as mqtt_client
 import psycopg2 as db
@@ -11,12 +12,15 @@ MQTT_PORT = int(os.environ.get("MQTT_PORT", "1883"))
 MQTT_TOPIC = os.environ.get("INGEST_SUB_TOPIC", "v1/+/reading")
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+log = logging.getLogger("ingest_subscriber")
+
 def connect_mqtt(host, port: int):
     def on_connect(client, userdata, flags, reason_code, properties):
         if reason_code == 0:
-            print(f"Connected to MQTT Broker!")
+            log.info(f"Connected to MQTT Broker!")
         else:
-            print(f"Failed to connect, return code {reason_code}")
+            log.error(f"Failed to connect, return code {reason_code}")
 
     client = mqtt_client.Client(
         client_id="tbf_changeisintheair_subscriber",
@@ -35,6 +39,7 @@ def on_message(client, userdata, msg):
     try:
         data = json.loads(msg.payload)
         record = process(data)
+        log.info(f"Storing message from {msg.topic} for {record['device_id']}")
         with db.connect(DATABASE_URL) as conn:
             with conn.cursor() as cur:
                 cur.execute(
@@ -54,18 +59,17 @@ def on_message(client, userdata, msg):
                     ),
                 )
     except Exception as e:
-        print(f"Failed to process message on {msg.topic}: {e}")
+        log.error(f"Failed to process message on {msg.topic}: {e}")
 
 def run():    
     client = connect_mqtt(MQTT_HOST, MQTT_PORT)
     client.on_message = on_message
     for topic in MQTT_TOPIC.split(','):
         client.subscribe(topic)
-
     try:
         client.loop_forever()
     except KeyboardInterrupt:
-        print("Exiting...")
+        log.info("Exiting...")
 
 if __name__ == '__main__':
     run()
