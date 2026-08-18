@@ -23,7 +23,7 @@ log = logging.getLogger("ingest_subscriber")
 def connect_mqtt(host, port: int):
     def on_connect(client, userdata, flags, reason_code, properties):
         if reason_code == 0:
-            log.info(f"Connected to MQTT Broker!")
+            log.info(f"Connected to MQTT Broker at '{MQTT_HOST}:{MQTT_PORT}'!")
         else:
             log.error(f"Failed to connect, return code {reason_code}")
 
