@@ -17,6 +17,7 @@ import sys
 import requests
 import argparse
 import time
+from datetime import datetime, timezone
 
 import paho.mqtt.client as mqtt
 from dotenv import load_dotenv
@@ -37,20 +38,16 @@ MQTT_TOPIC = os.environ.get("QUANTAQ_PUB_TOPIC", "v1/quantaq/reading")  # requir
 
 REQUEST_TIMEOUT_S = 15
 
+def fetch_device_serialnumbers() -> list[str]:
+    # Return a list of serial numbers from the collection
+    return list(map(
+        lambda d: d["sn"], 
+        _fetch_devices(org_id=QUANTAQ_ORG_ID, network_id=QUANTAQ_NETWORK_ID)
+    ))
 
-def fetch_latest_readings() -> list[dict]:
-    """Fetch the most recent data point for each configured device.
-
-    Prefers a single network/org-scoped call (fewer requests, well within
-    QuantAQ's 150 req/min limit). Falls back to one call per serial number
-    if devices aren't grouped into a QuantAQ network/org on our account.
-    """
-    return _fetch_most_recent(org_id=QUANTAQ_ORG_ID, network_id=QUANTAQ_NETWORK_ID)
-
-
-def _fetch_most_recent(**params) -> list[dict]:
+def _fetch_devices(**params) -> list[dict]:
     resp = requests.get(
-        f"{QUANTAQ_API_BASE}/data/most-recent/",
+        f"{QUANTAQ_API_BASE}/devices/",
         params=params,
         auth=(QUANTAQ_API_KEY, ""),  # API key as HTTP Basic username, blank password
         timeout=REQUEST_TIMEOUT_S,
@@ -58,6 +55,22 @@ def _fetch_most_recent(**params) -> list[dict]:
     resp.raise_for_status()
     return resp.json()["data"]
 
+def fetch_all_readings(serial_numbers) -> list[dict]:
+    readings = []
+    for sn in serial_numbers:
+        r = _fetch_latest(sn, org_id=QUANTAQ_ORG_ID, network_id=QUANTAQ_NETWORK_ID, limit=1, sort="timestamp,desc")
+        readings.append(r)
+    return readings
+
+def _fetch_latest(sn, **params) -> list[dict]:
+    resp = requests.get(
+        f"{QUANTAQ_API_BASE}/devices/{sn}/data/",
+        params=params,
+        auth=(QUANTAQ_API_KEY, ""),  # API key as HTTP Basic username, blank password
+        timeout=REQUEST_TIMEOUT_S,
+    )
+    resp.raise_for_status()
+    return resp.json()["data"][0]
 
 def normalize(record: dict) -> dict:
     """Map a QuantAQ data record onto the project's shared reading schema.
@@ -72,7 +85,7 @@ def normalize(record: dict) -> dict:
         "source": "quantaq",
         "name": f"QuantAQ SN#{record['sn']}",
         "device_id": record["sn"],
-        "timestamp": record["timestamp"],  # UTC ISO-8601, as returned by the API
+        "timestamp": datetime.now(timezone.utc).isoformat(), 
         "pm1": record.get("pm1"),
         "pm25": record.get("pm25"),
         "pm10": record.get("pm10"),
@@ -82,7 +95,6 @@ def normalize(record: dict) -> dict:
         "latitude": geo.get("lat"),
         "longitude": geo.get("lon")
     }
-
 
 def publish(readings: list[dict]) -> None:
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, client_id="quantaq-publisher")
@@ -104,9 +116,11 @@ def publish(readings: list[dict]) -> None:
     client.disconnect()
 
 def main(args) -> int:
+    device_serialnumbers = fetch_device_serialnumbers()
+    log.info(f"Identified {len(device_serialnumbers)} devices: {device_serialnumbers}")
     while True:
         try:
-            raw_records = fetch_latest_readings()
+            raw_records = fetch_all_readings(device_serialnumbers)
             if not raw_records:
                 log.warning("No records returned from QuantAQ")
 
@@ -121,7 +135,6 @@ def main(args) -> int:
 
         log.info(f"QuantAQ Publisher waiting for {args.timer} seconds")
         time.sleep(args.timer)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
